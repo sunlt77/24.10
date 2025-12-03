@@ -262,11 +262,30 @@ jobs:
           name: OpenWrt_firmware${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
           path: ${{ env.PACK_DOWNLOAD_TARGET_PATH }}
 
-      - name: Package OpenWrt Firmware
-        uses: ophub/flippy-openwrt-actions@main
+      - name: Find Rootfs File
+        id: findRootfs
         if: ${{ steps.downloadArtifact.outcome }} == 'success' && !cancelled()
+        run: |
+          set -euo pipefail
+          ROOT_DIR="${{ env.PACK_DOWNLOAD_TARGET_PATH }}"
+          echo "🔎 Searching for *rootfs.tar.gz in: $ROOT_DIR"
+          ROOTFS_FILE=$(find "$ROOT_DIR" -type f -name '*rootfs.tar.gz' -print -quit || true)
+          if [[ -z "${ROOTFS_FILE:-}" ]]; then
+            echo "❌ rootfs not found in $ROOT_DIR"
+            echo "📂 Listing files in $ROOT_DIR"
+            ls -al "$ROOT_DIR"
+            echo "status=not_found" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          echo "✅ Found: $ROOTFS_FILE"
+          echo "rootfsFile=$ROOTFS_FILE" >> $GITHUB_OUTPUT
+          echo "status=success" >> $GITHUB_OUTPUT
+
+      - name: Package OpenWrt Firmware
+        uses: unifreq/openwrt_packit@master
+        if: ${{ steps.findRootfs.outputs.status }} == 'success' && !cancelled()
         env:
-          OPENWRT_ARMSR: ${{ env.PACK_DOWNLOAD_TARGET_PATH }}/*rootfs.tar.gz
+          OPENWRT_ARMSR: ${{ steps.findRootfs.outputs.rootfsFile }}
           PACKAGE_SOC: ${{ matrix.PACK_PACKAGE_SOC }}
           KERNEL_REPO_URL: ${{ env.KERNEL_REPO_URL }}
           KERNEL_VERSION_NAME: ${{ matrix.PACK_KERNEL_VERSION_NAME }}

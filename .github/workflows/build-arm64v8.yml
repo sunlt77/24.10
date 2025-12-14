@@ -74,7 +74,7 @@ jobs:
         echo "=============================================================================="
 
     - name: Checkout
-      uses: actions/checkout@main
+      uses: actions/checkout@v6
 
     - name: Initialization environment
       env:
@@ -148,7 +148,7 @@ jobs:
       run: df -hT
 
     - name: Upload bin directory
-      uses: actions/upload-artifact@main
+      uses: actions/upload-artifact@v6
       if: steps.compile.outputs.status == 'success' && env.UPLOAD_BIN_DIR == 'true'
       with:
         name: OpenWrt_bin${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
@@ -189,7 +189,7 @@ jobs:
         echo "status=success" >> $GITHUB_OUTPUT
 
     - name: Upload firmware directory
-      uses: actions/upload-artifact@main
+      uses: actions/upload-artifact@v6
       if: steps.organize.outputs.status == 'success' && !cancelled()
       with:
         name: OpenWrt_firmware${{ env.DEVICE_NAME }}${{ env.FILE_DATE }}
@@ -199,7 +199,7 @@ jobs:
 
     - name: Upload Rootfs File
       id: rootfsUpload
-      uses: actions/upload-artifact@main
+      uses: actions/upload-artifact@v6
       if: steps.findRootfs.outputs.status == 'success' && !cancelled()
       with:
         name: ${{ steps.findRootfs.outputs.BASENAME }}
@@ -227,7 +227,7 @@ jobs:
           remove-docker-images: 'true'
 
       - name: Checkout
-        uses: actions/checkout@main
+        uses: actions/checkout@v6
 
       - name: Initialization environment
         env:
@@ -244,7 +244,7 @@ jobs:
           sudo timedatectl set-timezone "$TZ"
 
       - name: Download Rootfs File
-        uses: actions/download-artifact@main
+        uses: actions/download-artifact@v7
         id: downloadArtifact
         if: needs.build.result == 'success' && !cancelled()
         with:
@@ -290,7 +290,7 @@ jobs:
           echo "status=success" >> $GITHUB_OUTPUT
 
       - name: Upload firmware directory
-        uses: actions/upload-artifact@main
+        uses: actions/upload-artifact@v6
         if: steps.organize.outputs.status == 'success' && !cancelled()
         with:
           name: OpenWrt_firmware_${{ matrix.PACK_PACKAGE_SOC }}_${{ matrix.PACK_KERNEL_VERSION_NAME }}_${{ steps.organize.outputs.timestamp }}
@@ -303,10 +303,10 @@ jobs:
           keep_minimum_runs: 3
 
       - name: Remove old Releases
-        uses: dev-drprasad/delete-older-releases@v0.1.0
+        uses: ophub/delete-releases-workflows@main
         if: env.UPLOAD_RELEASE == 'true' && !cancelled()
         with:
-          keep_latest: 3
+          delete_releases: true
+          releases_keep_latest: 3
           delete_tags: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          gh_token: ${{ secrets.GITHUB_TOKEN }}
